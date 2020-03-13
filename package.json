@@ -1,0 +1,10 @@
+{
+  "name": "react-webrtc-sample",
+  "version": "1.0.0",
+  "description": "React.js based sample for WebRTC technology",
+  "main": "build/index.js",
+  "repository": "https://github.com/vitalydiachenko/react-webrtc-sample",
+  "author": "Vitaly Diachenko <v.di4chenko@gmail.com>",
+  "license": "MIT",
+  "private": true
+}
