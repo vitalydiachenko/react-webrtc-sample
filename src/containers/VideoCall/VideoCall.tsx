@@ -12,6 +12,10 @@ import { useState } from 'react';
 
 const useStyles = makeStyles(theme => ({
   callContainer: {
+    margin: '16px 0',
+    padding: '16px',
+  },
+  callHeader: {
     padding: '16px',
   },
   main: {
@@ -31,7 +35,8 @@ function VideoCall() {
   const [isUsersListOpen, toggleUsersListVisibility] = useState<boolean>(false);
 
   const {
-    state: { users },
+    setActiveUser,
+    state: { activeUser, users },
   } = useCallDispatcher();
 
   const handleUsersListClose = () => {
@@ -40,6 +45,12 @@ function VideoCall() {
 
   const handleUsersListOpen = () => {
     toggleUsersListVisibility(true);
+  };
+
+  const handleSelectUser = (user: string) => {
+    setActiveUser(user);
+
+    handleUsersListClose();
   };
 
   const classes = useStyles();
@@ -64,13 +75,18 @@ function VideoCall() {
           </Button>
         </Grid>
         <Grid item={true} xs={12} md={10}>
-          <Paper className={classes.callContainer} elevation={3}>
-            Video Call Block
+          <Paper className={classes.callHeader} elevation={3}>
+            <Typography variant="h4">
+              {!!activeUser ? `Call with user "#${activeUser}"` : 'Start Call'}
+            </Typography>
+          </Paper>
+          <Paper className={classes.callContainer} elevation={1}>
+            <Typography variant="body2">Open contacts and select user you want to call</Typography>
           </Paper>
         </Grid>
       </Grid>
       <Drawer open={isUsersListOpen} anchor="left" onClose={handleUsersListClose}>
-        <UsersList users={users} />
+        <UsersList onSelect={handleSelectUser} users={users} />
       </Drawer>
     </div>
   );

@@ -8,11 +8,16 @@ import * as React from 'react';
 import './UsersList.less';
 
 interface IUsersListProps {
+  onSelect: (user: string) => void;
   users: string[];
 }
 
 function UsersList(props: IUsersListProps) {
-  const { users } = props;
+  const { onSelect, users } = props;
+
+  const handleUserSelect = (user: string) => () => {
+    onSelect(user);
+  };
 
   return (
     <div className="UsersList">
@@ -27,7 +32,7 @@ function UsersList(props: IUsersListProps) {
         ) : (
           <List>
             {users.map(user => (
-              <ListItem key={`USERS_LIST_${user}`}>
+              <ListItem key={`USERS_LIST_${user}`} onClick={handleUserSelect(user)}>
                 <ListItemIcon>
                   <AccountBoxIcon />
                 </ListItemIcon>
