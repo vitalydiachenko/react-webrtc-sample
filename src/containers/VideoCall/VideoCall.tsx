@@ -6,7 +6,7 @@ import Paper from '@material-ui/core/Paper';
 import { makeStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import UsersList from 'components/UsersList';
-import { useSocket } from 'hooks';
+import { useCallDispatcher } from 'hooks';
 import * as React from 'react';
 import { useState } from 'react';
 
@@ -32,7 +32,7 @@ function VideoCall() {
 
   const {
     state: { users },
-  } = useSocket();
+  } = useCallDispatcher();
 
   const handleUsersListClose = () => {
     toggleUsersListVisibility(false);

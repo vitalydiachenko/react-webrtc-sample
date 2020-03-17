@@ -78,7 +78,7 @@ const initialState: ISocketState = {
   users: [],
 };
 
-function useSocket(): { state: ISocketState } {
+function useCallDispatcher(): { state: ISocketState } {
   const socket = useMemo(() => io(SOCKET_ENDPOINT), [io]);
 
   const [state, dispatch] = useReducer<Reducer<ISocketState, ISocketAction>>(reducer, initialState);
@@ -100,4 +100,4 @@ function useSocket(): { state: ISocketState } {
   return { state };
 }
 
-export default useSocket;
+export default useCallDispatcher;

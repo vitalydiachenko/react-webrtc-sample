@@ -1,1 +1,1 @@
-export { default as useSocket } from './useSocket';
+export { default as useCallDispatcher } from './useCallDispatcher';
