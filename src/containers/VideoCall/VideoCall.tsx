@@ -6,6 +6,7 @@ import Paper from '@material-ui/core/Paper';
 import { makeStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import UsersList from 'components/UsersList';
+import { useSocket } from 'hooks';
 import * as React from 'react';
 import { useState } from 'react';
 
@@ -28,6 +29,10 @@ const useStyles = makeStyles(theme => ({
 
 function VideoCall() {
   const [isUsersListOpen, toggleUsersListVisibility] = useState<boolean>(false);
+
+  const {
+    state: { users },
+  } = useSocket();
 
   const handleUsersListClose = () => {
     toggleUsersListVisibility(false);
@@ -65,7 +70,7 @@ function VideoCall() {
         </Grid>
       </Grid>
       <Drawer open={isUsersListOpen} anchor="left" onClose={handleUsersListClose}>
-        <UsersList users={[]} />
+        <UsersList users={users} />
       </Drawer>
     </div>
   );
