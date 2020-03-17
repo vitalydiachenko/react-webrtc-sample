@@ -1,5 +1,8 @@
-# WebStorm files
-.idea
+# Error Log
+yarn-error.log
 
 # Node modules
 node_modules
+
+# WebStorm files
+.idea
