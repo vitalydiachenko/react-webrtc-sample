@@ -1,33 +1,27 @@
-import Button from '@material-ui/core/Button';
+import AppBar from '@material-ui/core/AppBar';
 import Container from '@material-ui/core/Container';
-import Grid from '@material-ui/core/Grid';
-import Paper from '@material-ui/core/Paper';
-import { makeStyles } from '@material-ui/core/styles';
+import IconButton from '@material-ui/core/IconButton';
+import Toolbar from '@material-ui/core/Toolbar';
+import Typography from '@material-ui/core/Typography';
+import { default as VideoCallIcon } from '@material-ui/icons/VideoCall';
+import VideoCall from 'containers/VideoCall';
 import * as React from 'react';
 
-const useStyles = makeStyles(() => ({
-  paper: {
-    margin: '21px 0',
-    padding: '16px',
-  },
-}));
-
 function App() {
-  const classes = useStyles();
-
   return (
-    <Container>
-      <Grid container={true} justify="center" spacing={3}>
-        <Grid item={true} xs={6}>
-          <Paper className={classes.paper} color="text.primary">
-            WebRTC Application
-          </Paper>
-          <Button variant="contained" color="primary">
-            Turn on
-          </Button>
-        </Grid>
-      </Grid>
-    </Container>
+    <div className="App">
+      <AppBar position="static">
+        <Toolbar>
+          <IconButton edge="start" color="inherit">
+            <VideoCallIcon />
+          </IconButton>
+          <Typography variant="h5">WebRTC Sample</Typography>
+        </Toolbar>
+      </AppBar>
+      <Container>
+        <VideoCall />
+      </Container>
+    </div>
   );
 }
 
