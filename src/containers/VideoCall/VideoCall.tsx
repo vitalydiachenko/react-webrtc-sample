@@ -6,6 +6,7 @@ import Paper from '@material-ui/core/Paper';
 import { makeStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import UsersList from 'components/UsersList';
+import VideoPreview from 'containers/VideoPreview';
 import { useCallDispatcher } from 'hooks';
 import * as React from 'react';
 import { useState } from 'react';
@@ -81,7 +82,13 @@ function VideoCall() {
             </Typography>
           </Paper>
           <Paper className={classes.callContainer} elevation={1}>
-            <Typography variant="body2">Open contacts and select user you want to call</Typography>
+            {!activeUser ? (
+              <Typography variant="body2">
+                Open contacts and select user you want to call
+              </Typography>
+            ) : (
+              <VideoPreview />
+            )}
           </Paper>
         </Grid>
       </Grid>
