@@ -1,7 +1,25 @@
 .VideoPreview {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  &__Remote {
+    position: relative;
+    z-index: 1;
+    margin: 0 0 16px;
+    width: 100%;
+    max-width: 960px;
+  }
 
   &__Local {
-    
+    position: relative;
+    z-index: 2;
+
+    @media screen and (min-width: 768px) {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+    }
   }
 }

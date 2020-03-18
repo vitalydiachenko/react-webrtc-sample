@@ -1,4 +1,5 @@
 import LocalVideoPreview from 'components/LocalVideoPreview';
+import RemoteVideoPreview from 'components/RemoteVideoPreview';
 import * as React from 'react';
 import './VideoPreview.less';
 
@@ -8,12 +9,13 @@ interface IVideoPreviewProps {
 
 class VideoPreview extends React.PureComponent<IVideoPreviewProps> {
   private localStream: MediaStream | null;
-  private videoNode: HTMLVideoElement | null;
+  private localVideoNode: HTMLVideoElement | null;
+  private remoteVideoNode: HTMLVideoElement | null;
 
   constructor(props: IVideoPreviewProps) {
     super(props);
 
-    this.videoNode = null;
+    this.localVideoNode = null;
   }
 
   public componentDidMount(): void {
@@ -29,9 +31,9 @@ class VideoPreview extends React.PureComponent<IVideoPreviewProps> {
   };
 
   public turnOffLocalVideoPreview = (): void => {
-    if (this.videoNode) {
-      this.videoNode.pause();
-      this.videoNode.srcObject = null;
+    if (this.localVideoNode) {
+      this.localVideoNode.pause();
+      this.localVideoNode.srcObject = null;
 
       if (this.localStream) {
         this.localStream.getTracks().forEach((track: MediaStreamTrack) => {
@@ -48,8 +50,8 @@ class VideoPreview extends React.PureComponent<IVideoPreviewProps> {
         stream => {
           this.localStream = stream;
 
-          if (this.videoNode) {
-            this.videoNode.srcObject = this.localStream;
+          if (this.localVideoNode) {
+            this.localVideoNode.srcObject = this.localStream;
           }
         },
         error => {
@@ -61,15 +63,25 @@ class VideoPreview extends React.PureComponent<IVideoPreviewProps> {
     }
   };
 
-  public setVideoNode = (videoNode: HTMLVideoElement): void => {
-    this.videoNode = videoNode;
+  public setLocalVideoNode = (videoNode: HTMLVideoElement): void => {
+    this.localVideoNode = videoNode;
+  };
+
+  public setRemoteVideoNode = (videoNode: HTMLVideoElement): void => {
+    this.remoteVideoNode = videoNode;
   };
 
   public render(): React.ReactNode {
     return (
       <div className="VideoPreview">
+        <div className="VideoPreview__Remote">
+          <RemoteVideoPreview
+            onEndCall={this.handleEndCall}
+            setVideoNode={this.setRemoteVideoNode}
+          />
+        </div>
         <div className="VideoPreview__Local">
-          <LocalVideoPreview onEndCall={this.handleEndCall} setVideoNode={this.setVideoNode} />
+          <LocalVideoPreview setVideoNode={this.setLocalVideoNode} />
         </div>
       </div>
     );
