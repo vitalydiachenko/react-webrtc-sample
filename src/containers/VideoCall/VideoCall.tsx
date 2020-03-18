@@ -23,7 +23,7 @@ const useStyles = makeStyles(theme => ({
     margin: '32px 0',
   },
   sideBar: {
-    [theme.breakpoints.only('xs')]: {
+    [theme.breakpoints.between('xs', 'md')]: {
       margin: '0 0 24px',
     },
   },
@@ -54,7 +54,13 @@ function VideoCall() {
     handleUsersListClose();
   };
 
+  const unsetActiveUser = (): void => {
+    setActiveUser('');
+  };
+
   const classes = useStyles();
+
+  const callHeaderTitle = !!activeUser ? `Call with user "#${activeUser}"` : 'Start Call';
 
   return (
     <div>
@@ -77,8 +83,8 @@ function VideoCall() {
         </Grid>
         <Grid item={true} xs={12} md={10}>
           <Paper className={classes.callHeader} elevation={3}>
-            <Typography variant="h4">
-              {!!activeUser ? `Call with user "#${activeUser}"` : 'Start Call'}
+            <Typography noWrap={true} variant="h4" title={callHeaderTitle}>
+              {callHeaderTitle}
             </Typography>
           </Paper>
           <Paper className={classes.callContainer} elevation={1}>
@@ -87,7 +93,7 @@ function VideoCall() {
                 Open contacts and select user you want to call
               </Typography>
             ) : (
-              <VideoPreview />
+              <VideoPreview unsetActiveUser={unsetActiveUser} />
             )}
           </Paper>
         </Grid>

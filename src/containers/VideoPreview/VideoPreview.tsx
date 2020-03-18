@@ -1,11 +1,16 @@
+import LocalVideoPreview from 'components/LocalVideoPreview';
 import * as React from 'react';
 import './VideoPreview.less';
 
-class VideoPreview extends React.PureComponent {
+interface IVideoPreviewProps {
+  unsetActiveUser: () => void;
+}
+
+class VideoPreview extends React.PureComponent<IVideoPreviewProps> {
   private localStream: MediaStream | null;
   private videoNode: HTMLVideoElement | null;
 
-  constructor(props: {}) {
+  constructor(props: IVideoPreviewProps) {
     super(props);
 
     this.videoNode = null;
@@ -14,6 +19,14 @@ class VideoPreview extends React.PureComponent {
   public componentDidMount(): void {
     this.turnOnLocalVideoPreview();
   }
+
+  public handleEndCall = () => {
+    const { unsetActiveUser } = this.props;
+
+    this.turnOffLocalVideoPreview();
+
+    unsetActiveUser();
+  };
 
   public turnOffLocalVideoPreview = (): void => {
     if (this.videoNode) {
@@ -56,7 +69,7 @@ class VideoPreview extends React.PureComponent {
     return (
       <div className="VideoPreview">
         <div className="VideoPreview__Local">
-          <video autoPlay={true} muted={true} ref={this.setVideoNode} />
+          <LocalVideoPreview onEndCall={this.handleEndCall} setVideoNode={this.setVideoNode} />
         </div>
       </div>
     );
