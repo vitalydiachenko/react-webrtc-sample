@@ -36,6 +36,7 @@ function VideoCall() {
   const [isUsersListOpen, toggleUsersListVisibility] = useState<boolean>(false);
 
   const {
+    callUser,
     setActiveUser,
     state: { activeUser, users },
   } = useCallDispatcher();
@@ -49,7 +50,9 @@ function VideoCall() {
   };
 
   const handleSelectUser = (user: string) => {
-    setActiveUser(user);
+    callUser(user).catch(() => {
+      throw new Error(`Cannot call user #${user}!`);
+    });
 
     handleUsersListClose();
   };

@@ -1,5 +1,5 @@
 import { SOCKET_ENDPOINT, SocketEvent } from 'consts';
-import { Reducer, useEffect, useMemo, useReducer } from 'react';
+import { Reducer, useCallback, useEffect, useMemo, useReducer } from 'react';
 import * as io from 'socket.io-client';
 
 enum SocketActions {
@@ -20,6 +20,7 @@ export interface ICallDispatcherState {
 }
 
 export interface ICallDispatcherHook {
+  callUser: (user: string) => Promise<void>;
   setActiveUser: (user: string) => void;
   state: ICallDispatcherState;
 }
@@ -105,17 +106,52 @@ const initialState: ICallDispatcherState = {
 };
 
 function useCallDispatcher(): ICallDispatcherHook {
-  const socket = useMemo(() => io(SOCKET_ENDPOINT), [io]);
+  const socket: SocketIOClient.Socket = useMemo<SocketIOClient.Socket>(
+    () => io(SOCKET_ENDPOINT),
+    [],
+  );
+
+  const peerConnection: RTCPeerConnection = useMemo<RTCPeerConnection>(
+    () => new RTCPeerConnection(),
+    [],
+  );
 
   const [state, dispatch] = useReducer<Reducer<ICallDispatcherState, ISocketAction>>(
     reducer,
     initialState,
   );
 
+  const callUser = useCallback<(user: string) => Promise<void>>(async user => {
+    dispatch(setActiveUser(user));
+
+    const offer: RTCSessionDescriptionInit = await peerConnection.createOffer();
+
+    await peerConnection.setLocalDescription(new RTCSessionDescription(offer));
+
+    socket.emit(SocketEvent.CallUser, {
+      offer,
+      to: user,
+    });
+  }, []);
+
+  const onCallMade = useCallback<
+    (data: { socket: string; offer: RTCSessionDescriptionInit }) => Promise<void>
+  >(async ({ socket: socketId, offer }) => {
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
+    const answer = await peerConnection.createAnswer();
+
+    await peerConnection.setLocalDescription(new RTCSessionDescription(answer));
+
+    socket.emit(SocketEvent.MakeAnswer, { answer, to: socketId });
+  }, []);
+
   useEffect(() => {
     socket.on(SocketEvent.AddUserToList, ({ user }: { user: string }) => {
       dispatch(addUser(user));
     });
+
+    socket.on(SocketEvent.CallMade, onCallMade);
 
     socket.on(SocketEvent.RemoveUserFromList, ({ user }: { user: string }) => {
       dispatch(removeUser(user));
@@ -127,6 +163,7 @@ function useCallDispatcher(): ICallDispatcherHook {
   }, []);
 
   return {
+    callUser,
     setActiveUser: (user: string) => {
       dispatch(setActiveUser(user));
     },
