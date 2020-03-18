@@ -21,6 +21,7 @@ export interface ICallDispatcherState {
 
 export interface ICallDispatcherHook {
   callUser: (user: string) => Promise<void>;
+  peerConnection: RTCPeerConnection;
   setActiveUser: (user: string) => void;
   state: ICallDispatcherState;
 }
@@ -105,6 +106,8 @@ const initialState: ICallDispatcherState = {
   users: [],
 };
 
+let isAlreadyCalling = false;
+
 function useCallDispatcher(): ICallDispatcherHook {
   const socket: SocketIOClient.Socket = useMemo<SocketIOClient.Socket>(
     () => io(SOCKET_ENDPOINT),
@@ -121,9 +124,7 @@ function useCallDispatcher(): ICallDispatcherHook {
     initialState,
   );
 
-  const callUser = useCallback<(user: string) => Promise<void>>(async user => {
-    dispatch(setActiveUser(user));
-
+  const sendOffer = useCallback<(user: string) => Promise<void>>(async user => {
     const offer: RTCSessionDescriptionInit = await peerConnection.createOffer();
 
     await peerConnection.setLocalDescription(new RTCSessionDescription(offer));
@@ -134,22 +135,44 @@ function useCallDispatcher(): ICallDispatcherHook {
     });
   }, []);
 
+  const callUser = useCallback<(user: string) => Promise<void>>(async user => {
+    dispatch(setActiveUser(user));
+
+    await sendOffer(user);
+  }, []);
+
   const onCallMade = useCallback<
     (data: { socket: string; offer: RTCSessionDescriptionInit }) => Promise<void>
   >(async ({ socket: socketId, offer }) => {
+    dispatch(setActiveUser(socketId));
+
     await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
 
-    const answer = await peerConnection.createAnswer();
+    const answer: RTCSessionDescriptionInit = await peerConnection.createAnswer();
 
     await peerConnection.setLocalDescription(new RTCSessionDescription(answer));
 
     socket.emit(SocketEvent.MakeAnswer, { answer, to: socketId });
   }, []);
 
+  const onAnswerMade = useCallback<
+    (data: { socket: string; answer: RTCSessionDescriptionInit }) => Promise<void>
+  >(async ({ socket: socketId, answer }) => {
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+
+    if (!isAlreadyCalling) {
+      isAlreadyCalling = true;
+
+      await sendOffer(socketId);
+    }
+  }, []);
+
   useEffect(() => {
     socket.on(SocketEvent.AddUserToList, ({ user }: { user: string }) => {
       dispatch(addUser(user));
     });
+
+    socket.on(SocketEvent.AnswerMade, onAnswerMade);
 
     socket.on(SocketEvent.CallMade, onCallMade);
 
@@ -164,6 +187,7 @@ function useCallDispatcher(): ICallDispatcherHook {
 
   return {
     callUser,
+    peerConnection,
     setActiveUser: (user: string) => {
       dispatch(setActiveUser(user));
     },

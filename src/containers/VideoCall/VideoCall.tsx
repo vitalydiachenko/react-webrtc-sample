@@ -37,6 +37,7 @@ function VideoCall() {
 
   const {
     callUser,
+    peerConnection,
     setActiveUser,
     state: { activeUser, users },
   } = useCallDispatcher();
@@ -96,7 +97,7 @@ function VideoCall() {
                 Open contacts and select user you want to call
               </Typography>
             ) : (
-              <VideoPreview unsetActiveUser={unsetActiveUser} />
+              <VideoPreview peerConnection={peerConnection} unsetActiveUser={unsetActiveUser} />
             )}
           </Paper>
         </Grid>

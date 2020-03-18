@@ -4,6 +4,7 @@ import * as React from 'react';
 import './VideoPreview.less';
 
 interface IVideoPreviewProps {
+  peerConnection: RTCPeerConnection;
   unsetActiveUser: () => void;
 }
 
@@ -19,7 +20,7 @@ class VideoPreview extends React.PureComponent<IVideoPreviewProps> {
   }
 
   public componentDidMount(): void {
-    this.turnOnLocalVideoPreview();
+    this.turnOnLocalVideoPreview(this.turnOnLocalVideoBroadcasting);
   }
 
   public handleEndCall = () => {
@@ -28,6 +29,16 @@ class VideoPreview extends React.PureComponent<IVideoPreviewProps> {
     this.turnOffLocalVideoPreview();
 
     unsetActiveUser();
+  };
+
+  public setPeerConnectionListeners = () => {
+    const { peerConnection } = this.props;
+
+    peerConnection.ontrack = ({ streams: [stream] }) => {
+      if (this.remoteVideoNode) {
+        this.remoteVideoNode.srcObject = stream;
+      }
+    };
   };
 
   public turnOffLocalVideoPreview = (): void => {
@@ -43,7 +54,19 @@ class VideoPreview extends React.PureComponent<IVideoPreviewProps> {
     }
   };
 
-  public turnOnLocalVideoPreview = (): void => {
+  public turnOnLocalVideoBroadcasting = (): void => {
+    const { peerConnection } = this.props;
+
+    if (this.localStream) {
+      this.localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, this.localStream);
+      });
+    }
+
+    this.setPeerConnectionListeners();
+  };
+
+  public turnOnLocalVideoPreview = (onSuccess: (() => void) | null = null): void => {
     if (navigator.getUserMedia) {
       navigator.getUserMedia(
         { video: true, audio: true },
@@ -52,6 +75,10 @@ class VideoPreview extends React.PureComponent<IVideoPreviewProps> {
 
           if (this.localVideoNode) {
             this.localVideoNode.srcObject = this.localStream;
+          }
+
+          if (onSuccess) {
+            onSuccess();
           }
         },
         error => {
