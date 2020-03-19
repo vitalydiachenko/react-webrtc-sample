@@ -17,6 +17,7 @@
       false
     ],
     "function-name": false,
+    "max-func-body-length": false,
     "no-relative-imports": [
       false
     ],
