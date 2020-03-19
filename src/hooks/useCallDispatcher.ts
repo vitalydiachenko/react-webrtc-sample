@@ -1,64 +1,105 @@
 import { SOCKET_ENDPOINT, SocketEvent } from 'consts';
-import { Reducer, useCallback, useEffect, useMemo, useReducer } from 'react';
+import { Reducer, useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import * as io from 'socket.io-client';
 
-enum SocketActions {
+enum CallDispatcherActions {
   AddUser = 'ADD_USER',
   RemoveUser = 'REMOVE_USER',
   SetActiveUser = 'SET_ACTIVE_USER',
-  UpdateUsers = 'UpdateUsers',
+  SetLocalStream = 'SET_LOCAL_STREAM',
+  SetLocalVideoNode = 'SET_LOCAL_VIDEO_NODE',
+  SetRemoteStream = 'SET_REMOTE_STREAM',
+  SetRemoteVideoNode = 'SET_REMOTE_VIDEO_NODE',
+  UpdateUsers = 'UPDATE_USERS',
 }
 
-interface ISocketAction<PayloadType = any> {
-  type: SocketActions;
+interface ICallDispatcherAction<PayloadType = any> {
+  type: CallDispatcherActions;
   payload: PayloadType;
 }
 
 export interface ICallDispatcherState {
   activeUser: string;
+  localStream: MediaStream | null;
+  localVideoNode: HTMLVideoElement | null;
+  remoteStream: MediaStream | null;
+  remoteVideoNode: HTMLVideoElement | null;
   users: string[];
 }
 
 export interface ICallDispatcherHook {
   callUser: (user: string) => Promise<void>;
-  peerConnection: RTCPeerConnection;
   setActiveUser: (user: string) => void;
+  setLocalVideoNode: (node: HTMLVideoElement | null) => void;
+  setRemoteVideoNode: (node: HTMLVideoElement | null) => void;
   state: ICallDispatcherState;
 }
 
-function addUser(user: string): ISocketAction<{ user: string }> {
+function addUser(user: string): ICallDispatcherAction<{ user: string }> {
   return {
-    type: SocketActions.AddUser,
+    type: CallDispatcherActions.AddUser,
     payload: { user },
   };
 }
 
-function removeUser(user: string): ISocketAction<{ user: string }> {
+function removeUser(user: string): ICallDispatcherAction<{ user: string }> {
   return {
-    type: SocketActions.RemoveUser,
+    type: CallDispatcherActions.RemoveUser,
     payload: { user },
   };
 }
 
-function setActiveUser(user: string): ISocketAction<{ user: string }> {
+function setActiveUser(user: string): ICallDispatcherAction<{ user: string }> {
   return {
-    type: SocketActions.SetActiveUser,
+    type: CallDispatcherActions.SetActiveUser,
     payload: { user },
   };
 }
 
-function updateUsers(users: string[]): ISocketAction<{ users: string[] }> {
+function setLocalStream(stream: MediaStream): ICallDispatcherAction<{ stream: MediaStream }> {
   return {
-    type: SocketActions.UpdateUsers,
+    type: CallDispatcherActions.SetLocalStream,
+    payload: { stream },
+  };
+}
+
+function setLocalVideoNode(
+  node: HTMLVideoElement | null,
+): ICallDispatcherAction<{ node: HTMLVideoElement | null }> {
+  return {
+    type: CallDispatcherActions.SetLocalVideoNode,
+    payload: { node },
+  };
+}
+
+function setRemoteStream(stream: MediaStream): ICallDispatcherAction<{ stream: MediaStream }> {
+  return {
+    type: CallDispatcherActions.SetRemoteStream,
+    payload: { stream },
+  };
+}
+
+function setRemoteVideoNode(
+  node: HTMLVideoElement | null,
+): ICallDispatcherAction<{ node: HTMLVideoElement | null }> {
+  return {
+    type: CallDispatcherActions.SetRemoteVideoNode,
+    payload: { node },
+  };
+}
+
+function updateUsers(users: string[]): ICallDispatcherAction<{ users: string[] }> {
+  return {
+    type: CallDispatcherActions.UpdateUsers,
     payload: { users },
   };
 }
 
-function reducer(state: ICallDispatcherState, action: ISocketAction): ICallDispatcherState {
+function reducer(state: ICallDispatcherState, action: ICallDispatcherAction): ICallDispatcherState {
   const { type, payload } = action;
 
   switch (type) {
-    case SocketActions.AddUser: {
+    case CallDispatcherActions.AddUser: {
       const { user }: { user: string } = payload;
 
       return {
@@ -67,7 +108,7 @@ function reducer(state: ICallDispatcherState, action: ISocketAction): ICallDispa
       };
     }
 
-    case SocketActions.RemoveUser: {
+    case CallDispatcherActions.RemoveUser: {
       const { user }: { user: string } = payload;
 
       return {
@@ -77,7 +118,7 @@ function reducer(state: ICallDispatcherState, action: ISocketAction): ICallDispa
       };
     }
 
-    case SocketActions.SetActiveUser: {
+    case CallDispatcherActions.SetActiveUser: {
       const { user }: { user: string } = payload;
 
       return {
@@ -86,7 +127,43 @@ function reducer(state: ICallDispatcherState, action: ISocketAction): ICallDispa
       };
     }
 
-    case SocketActions.UpdateUsers: {
+    case CallDispatcherActions.SetLocalStream: {
+      const { stream }: { stream: MediaStream | null } = payload;
+
+      return {
+        ...state,
+        localStream: stream,
+      };
+    }
+
+    case CallDispatcherActions.SetLocalVideoNode: {
+      const { node }: { node: HTMLVideoElement | null } = payload;
+
+      return {
+        ...state,
+        localVideoNode: node,
+      };
+    }
+
+    case CallDispatcherActions.SetRemoteStream: {
+      const { stream }: { stream: MediaStream } = payload;
+
+      return {
+        ...state,
+        remoteStream: stream,
+      };
+    }
+
+    case CallDispatcherActions.SetRemoteVideoNode: {
+      const { node }: { node: HTMLVideoElement | null } = payload;
+
+      return {
+        ...state,
+        remoteVideoNode: node,
+      };
+    }
+
+    case CallDispatcherActions.UpdateUsers: {
       const { users }: { users: string[] } = payload;
 
       return {
@@ -103,10 +180,16 @@ function reducer(state: ICallDispatcherState, action: ISocketAction): ICallDispa
 
 const initialState: ICallDispatcherState = {
   activeUser: '',
+  localStream: null,
+  localVideoNode: null,
+  remoteStream: null,
+  remoteVideoNode: null,
   users: [],
 };
 
 let isAlreadyCalling = false;
+
+let peerConnection: RTCPeerConnection | null = null;
 
 function useCallDispatcher(): ICallDispatcherHook {
   const socket: SocketIOClient.Socket = useMemo<SocketIOClient.Socket>(
@@ -114,26 +197,61 @@ function useCallDispatcher(): ICallDispatcherHook {
     [],
   );
 
-  const peerConnection: RTCPeerConnection = useMemo<RTCPeerConnection>(
-    () => new RTCPeerConnection(),
-    [],
-  );
-
-  const [state, dispatch] = useReducer<Reducer<ICallDispatcherState, ISocketAction>>(
+  const [state, dispatch] = useReducer<Reducer<ICallDispatcherState, ICallDispatcherAction>>(
     reducer,
     initialState,
   );
 
-  const sendOffer = useCallback<(user: string) => Promise<void>>(async user => {
-    const offer: RTCSessionDescriptionInit = await peerConnection.createOffer();
+  const localStreamRef = useRef(initialState.localStream);
 
-    await peerConnection.setLocalDescription(new RTCSessionDescription(offer));
+  useEffect(() => {
+    localStreamRef.current = state.localStream;
+  }, [state.localStream]);
 
-    socket.emit(SocketEvent.CallUser, {
-      offer,
-      to: user,
-    });
+  const initialiseLocalStream = useCallback<() => Promise<void>>(async () => {
+    try {
+      const stream: MediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: true,
+      });
+
+      dispatch(setLocalStream(stream));
+    } catch (e) {
+      throw new Error('Cannot initialise local stream');
+    }
   }, []);
+
+  const gotRemoteStream = useCallback<(event: RTCTrackEvent) => void>(({ streams: [stream] }) => {
+    dispatch(setRemoteStream(stream));
+  }, []);
+
+  const sendOffer = useCallback<(user: string) => Promise<void>>(
+    async user => {
+      const localStream = localStreamRef.current;
+
+      if (localStream) {
+        peerConnection = new RTCPeerConnection();
+
+        peerConnection.ontrack = gotRemoteStream;
+
+        localStream.getTracks().forEach((track: MediaStreamTrack) => {
+          peerConnection.addTrack(track, localStream);
+        });
+
+        const offer: RTCSessionDescriptionInit = await peerConnection.createOffer();
+
+        await peerConnection.setLocalDescription(new RTCSessionDescription(offer));
+
+        socket.emit(SocketEvent.CallUser, {
+          offer,
+          to: user,
+        });
+      } else {
+        throw new Error('Local stream is not available now');
+      }
+    },
+    [state],
+  );
 
   const callUser = useCallback<(user: string) => Promise<void>>(async user => {
     dispatch(setActiveUser(user));
@@ -145,6 +263,8 @@ function useCallDispatcher(): ICallDispatcherHook {
     (data: { socket: string; offer: RTCSessionDescriptionInit }) => Promise<void>
   >(async ({ socket: socketId, offer }) => {
     dispatch(setActiveUser(socketId));
+
+    peerConnection = new RTCPeerConnection();
 
     await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
 
@@ -158,16 +278,22 @@ function useCallDispatcher(): ICallDispatcherHook {
   const onAnswerMade = useCallback<
     (data: { socket: string; answer: RTCSessionDescriptionInit }) => Promise<void>
   >(async ({ socket: socketId, answer }) => {
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    if (peerConnection) {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
 
-    if (!isAlreadyCalling) {
-      isAlreadyCalling = true;
-
-      await sendOffer(socketId);
+      if (!isAlreadyCalling) {
+        isAlreadyCalling = true;
+      }
+    } else {
+      throw new Error('Peer connection is not available');
     }
   }, []);
 
   useEffect(() => {
+    initialiseLocalStream().catch(error => {
+      throw error;
+    });
+
     socket.on(SocketEvent.AddUserToList, ({ user }: { user: string }) => {
       dispatch(addUser(user));
     });
@@ -187,10 +313,21 @@ function useCallDispatcher(): ICallDispatcherHook {
 
   return {
     callUser,
-    peerConnection,
-    setActiveUser: (user: string) => {
+    setActiveUser: useCallback<(user: string) => void>((user: string) => {
       dispatch(setActiveUser(user));
-    },
+    }, []),
+    setLocalVideoNode: useCallback<(node: HTMLVideoElement | null) => void>(
+      (node: HTMLVideoElement | null) => {
+        dispatch(setLocalVideoNode(node));
+      },
+      [],
+    ),
+    setRemoteVideoNode: useCallback<(node: HTMLVideoElement | null) => void>(
+      (node: HTMLVideoElement | null) => {
+        dispatch(setRemoteVideoNode(node));
+      },
+      [],
+    ),
     state,
   };
 }

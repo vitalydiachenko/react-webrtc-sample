@@ -37,9 +37,10 @@ function VideoCall() {
 
   const {
     callUser,
-    peerConnection,
     setActiveUser,
-    state: { activeUser, users },
+    setLocalVideoNode,
+    setRemoteVideoNode,
+    state: { activeUser, localStream, localVideoNode, remoteStream, remoteVideoNode, users },
   } = useCallDispatcher();
 
   const handleUsersListClose = () => {
@@ -51,7 +52,10 @@ function VideoCall() {
   };
 
   const handleSelectUser = (user: string) => {
-    callUser(user).catch(() => {
+    callUser(user).catch(error => {
+      // tslint:disable-next-line:no-console
+      console.error(error);
+
       throw new Error(`Cannot call user #${user}!`);
     });
 
@@ -99,7 +103,15 @@ function VideoCall() {
             </Paper>
           )}
           <Paper className={classes.callContainer} elevation={1}>
-            <VideoPreview peerConnection={peerConnection} unsetActiveUser={unsetActiveUser} />
+            <VideoPreview
+              localStream={localStream}
+              localVideoNode={localVideoNode}
+              remoteStream={remoteStream}
+              remoteVideoNode={remoteVideoNode}
+              setLocalVideoNode={setLocalVideoNode}
+              setRemoteVideoNode={setRemoteVideoNode}
+              unsetActiveUser={unsetActiveUser}
+            />
           </Paper>
         </Grid>
       </Grid>

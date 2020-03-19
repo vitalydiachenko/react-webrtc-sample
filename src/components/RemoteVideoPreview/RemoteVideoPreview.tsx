@@ -3,9 +3,12 @@ import Card from '@material-ui/core/Card';
 import { makeStyles } from '@material-ui/core/styles';
 import { default as CallEndIcon } from '@material-ui/icons/CallEnd';
 import * as React from 'react';
+import { useEffect } from 'react';
 import './RemoteVideoPreview.less';
 
 interface IRemoteVideoPreviewProps {
+  remoteStream: MediaStream | null;
+  remoteVideoNode: HTMLVideoElement | null;
   onEndCall: () => void;
   setVideoNode: (videoNode: HTMLVideoElement) => void;
 }
@@ -17,7 +20,13 @@ const useStyles = makeStyles({
 });
 
 function RemoteVideoPreview(props: IRemoteVideoPreviewProps) {
-  const { onEndCall, setVideoNode } = props;
+  const { onEndCall, remoteStream, remoteVideoNode, setVideoNode } = props;
+
+  useEffect(() => {
+    if (remoteVideoNode) {
+      remoteVideoNode.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
 
   const classes = useStyles();
 

@@ -4,100 +4,49 @@ import * as React from 'react';
 import './VideoPreview.less';
 
 interface IVideoPreviewProps {
-  peerConnection: RTCPeerConnection;
+  localStream: MediaStream | null;
+  localVideoNode: HTMLVideoElement | null;
+  remoteStream: MediaStream | null;
+  remoteVideoNode: HTMLVideoElement | null;
+  setLocalVideoNode: (node: HTMLVideoElement) => void;
+  setRemoteVideoNode: (node: HTMLVideoElement) => void;
   unsetActiveUser: () => void;
 }
 
-class VideoPreview extends React.PureComponent<IVideoPreviewProps> {
-  private localStream: MediaStream | null;
-  private localVideoNode: HTMLVideoElement | null;
-  private remoteVideoNode: HTMLVideoElement | null;
+function VideoPreview(props: IVideoPreviewProps) {
+  const {
+    localStream,
+    localVideoNode,
+    remoteStream,
+    remoteVideoNode,
+    setLocalVideoNode,
+    setRemoteVideoNode,
+    unsetActiveUser,
+  } = props;
 
-  constructor(props: IVideoPreviewProps) {
-    super(props);
-
-    this.localVideoNode = null;
-  }
-
-  public componentDidMount(): void {
-    this.turnOnLocalVideoPreview(this.turnOnLocalVideoBroadcasting);
-  }
-
-  public handleEndCall = () => {
-    const { unsetActiveUser } = this.props;
-
+  const handleEndCall = () => {
     unsetActiveUser();
   };
 
-  public setPeerConnectionListeners = () => {
-    const { peerConnection } = this.props;
-
-    peerConnection.ontrack = ({ streams: [stream] }) => {
-      if (this.remoteVideoNode) {
-        this.remoteVideoNode.srcObject = stream;
-      }
-    };
-  };
-
-  public turnOnLocalVideoBroadcasting = (): void => {
-    const { peerConnection } = this.props;
-
-    if (this.localStream) {
-      this.localStream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, this.localStream);
-      });
-    }
-
-    this.setPeerConnectionListeners();
-  };
-
-  public turnOnLocalVideoPreview = (onSuccess: (() => void) | null = null): void => {
-    if (navigator.getUserMedia) {
-      navigator.getUserMedia(
-        { video: true, audio: true },
-        stream => {
-          this.localStream = stream;
-
-          if (this.localVideoNode) {
-            this.localVideoNode.srcObject = this.localStream;
-          }
-
-          if (onSuccess) {
-            onSuccess();
-          }
-        },
-        error => {
-          throw error;
-        },
-      );
-    } else {
-      throw new Error('Cannot turn on video broadcasting from the camera');
-    }
-  };
-
-  public setLocalVideoNode = (videoNode: HTMLVideoElement): void => {
-    this.localVideoNode = videoNode;
-  };
-
-  public setRemoteVideoNode = (videoNode: HTMLVideoElement): void => {
-    this.remoteVideoNode = videoNode;
-  };
-
-  public render(): React.ReactNode {
-    return (
-      <div className="VideoPreview">
-        <div className="VideoPreview__Remote">
-          <RemoteVideoPreview
-            onEndCall={this.handleEndCall}
-            setVideoNode={this.setRemoteVideoNode}
-          />
-        </div>
-        <div className="VideoPreview__Local">
-          <LocalVideoPreview setVideoNode={this.setLocalVideoNode} />
-        </div>
+  return (
+    <div className="VideoPreview">
+      <div className="VideoPreview__Remote">
+        <RemoteVideoPreview
+          onEndCall={handleEndCall}
+          remoteStream={remoteStream}
+          remoteVideoNode={remoteVideoNode}
+          setVideoNode={setRemoteVideoNode}
+        />
       </div>
-    );
-  }
+      <div className="VideoPreview__Local">
+        <LocalVideoPreview
+          localStream={localStream}
+          localVideoNode={localVideoNode}
+          setVideoNode={setLocalVideoNode}
+        />
+      </div>
+    </div>
+  );
 }
 
-export default VideoPreview;
+export default React.memo(VideoPreview);
