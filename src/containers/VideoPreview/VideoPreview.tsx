@@ -26,8 +26,6 @@ class VideoPreview extends React.PureComponent<IVideoPreviewProps> {
   public handleEndCall = () => {
     const { unsetActiveUser } = this.props;
 
-    this.turnOffLocalVideoPreview();
-
     unsetActiveUser();
   };
 
@@ -39,19 +37,6 @@ class VideoPreview extends React.PureComponent<IVideoPreviewProps> {
         this.remoteVideoNode.srcObject = stream;
       }
     };
-  };
-
-  public turnOffLocalVideoPreview = (): void => {
-    if (this.localVideoNode) {
-      this.localVideoNode.pause();
-      this.localVideoNode.srcObject = null;
-
-      if (this.localStream) {
-        this.localStream.getTracks().forEach((track: MediaStreamTrack) => {
-          track.stop();
-        });
-      }
-    }
   };
 
   public turnOnLocalVideoBroadcasting = (): void => {

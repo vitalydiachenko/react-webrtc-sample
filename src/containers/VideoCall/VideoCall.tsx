@@ -91,14 +91,15 @@ function VideoCall() {
               {callHeaderTitle}
             </Typography>
           </Paper>
-          <Paper className={classes.callContainer} elevation={1}>
-            {!activeUser ? (
+          {!activeUser && (
+            <Paper className={classes.callContainer} elevation={1}>
               <Typography variant="body2">
                 Open contacts and select user you want to call
               </Typography>
-            ) : (
-              <VideoPreview peerConnection={peerConnection} unsetActiveUser={unsetActiveUser} />
-            )}
+            </Paper>
+          )}
+          <Paper className={classes.callContainer} elevation={1}>
+            <VideoPreview peerConnection={peerConnection} unsetActiveUser={unsetActiveUser} />
           </Paper>
         </Grid>
       </Grid>

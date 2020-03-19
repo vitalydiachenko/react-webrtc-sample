@@ -30,7 +30,7 @@ function RemoteVideoPreview(props: IRemoteVideoPreviewProps) {
       <Card className={classes.previewCard}>
         <div className="RemoteVideoPreview__Content">
           <div className="RemoteVideoPreview__Content__Video">
-            <video autoPlay={true} ref={setVideoNode} />
+            <video autoPlay={true} muted={true} ref={setVideoNode} />
           </div>
           <div className="RemoteVideoPreview__Content__Controls">
             <Button variant="contained" color="secondary" onClick={handleEndCallClick}>
