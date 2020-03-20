@@ -262,22 +262,34 @@ function useCallDispatcher(): ICallDispatcherHook {
   const onCallMade = useCallback<
     (data: { socket: string; offer: RTCSessionDescriptionInit }) => Promise<void>
   >(async ({ socket: socketId, offer }) => {
-    dispatch(setActiveUser(socketId));
+    const localStream = localStreamRef.current;
 
-    peerConnection = new RTCPeerConnection();
+    if (localStream) {
+      dispatch(setActiveUser(socketId));
 
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+      peerConnection = new RTCPeerConnection();
 
-    const answer: RTCSessionDescriptionInit = await peerConnection.createAnswer();
+      peerConnection.ontrack = gotRemoteStream;
 
-    await peerConnection.setLocalDescription(new RTCSessionDescription(answer));
+      localStream.getTracks().forEach((track: MediaStreamTrack) => {
+        peerConnection.addTrack(track, localStream);
+      });
 
-    socket.emit(SocketEvent.MakeAnswer, { answer, to: socketId });
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
+      const answer: RTCSessionDescriptionInit = await peerConnection.createAnswer();
+
+      await peerConnection.setLocalDescription(new RTCSessionDescription(answer));
+
+      socket.emit(SocketEvent.MakeAnswer, { answer, to: socketId });
+    } else {
+      throw new Error('Local stream is not available now');
+    }
   }, []);
 
   const onAnswerMade = useCallback<
     (data: { socket: string; answer: RTCSessionDescriptionInit }) => Promise<void>
-  >(async ({ socket: socketId, answer }) => {
+  >(async ({ answer }) => {
     if (peerConnection) {
       await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
 

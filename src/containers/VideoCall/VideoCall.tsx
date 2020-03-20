@@ -19,6 +19,10 @@ const useStyles = makeStyles(theme => ({
   callHeader: {
     padding: '16px',
   },
+  currentId: {
+    marginTop: '16px',
+    padding: '8px',
+  },
   main: {
     margin: '32px 0',
   },
@@ -40,7 +44,15 @@ function VideoCall() {
     setActiveUser,
     setLocalVideoNode,
     setRemoteVideoNode,
-    state: { activeUser, localStream, localVideoNode, remoteStream, remoteVideoNode, users },
+    state: {
+      activeUser,
+      currentId,
+      localStream,
+      localVideoNode,
+      remoteStream,
+      remoteVideoNode,
+      users,
+    },
   } = useCallDispatcher();
 
   const handleUsersListClose = () => {
@@ -95,6 +107,13 @@ function VideoCall() {
               {callHeaderTitle}
             </Typography>
           </Paper>
+          {!!currentId && (
+            <Paper className={classes.currentId} elevation={2}>
+              <Typography noWrap={true} variant="h5" title={callHeaderTitle}>
+                Your ID: "{currentId}"
+              </Typography>
+            </Paper>
+          )}
           {!activeUser && (
             <Paper className={classes.callContainer} elevation={1}>
               <Typography variant="body2">
