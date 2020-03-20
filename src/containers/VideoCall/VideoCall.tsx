@@ -9,7 +9,7 @@ import UsersList from 'components/UsersList';
 import VideoPreview from 'containers/VideoPreview';
 import { useCallDispatcher } from 'hooks';
 import * as React from 'react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 const useStyles = makeStyles(theme => ({
   callContainer: {
@@ -41,7 +41,7 @@ function VideoCall() {
 
   const {
     callUser,
-    setActiveUser,
+    endCall,
     setLocalVideoNode,
     setRemoteVideoNode,
     state: {
@@ -55,28 +55,31 @@ function VideoCall() {
     },
   } = useCallDispatcher();
 
-  const handleUsersListClose = () => {
+  const handleUsersListClose = useCallback(() => {
     toggleUsersListVisibility(false);
-  };
+  }, []);
 
-  const handleUsersListOpen = () => {
+  const handleUsersListOpen = useCallback(() => {
     toggleUsersListVisibility(true);
-  };
+  }, []);
 
-  const handleSelectUser = (user: string) => {
-    callUser(user).catch(error => {
-      // tslint:disable-next-line:no-console
-      console.error(error);
+  const handleSelectUser = useCallback<(user: string) => void>(
+    (user: string) => {
+      callUser(user).catch(error => {
+        // tslint:disable-next-line:no-console
+        console.error(error);
 
-      throw new Error(`Cannot call user #${user}!`);
-    });
+        throw new Error(`Cannot call user #${user}!`);
+      });
 
-    handleUsersListClose();
-  };
+      handleUsersListClose();
+    },
+    [callUser],
+  );
 
-  const unsetActiveUser = (): void => {
-    setActiveUser('');
-  };
+  const handleEndCall = useCallback(() => {
+    endCall();
+  }, [endCall]);
 
   const classes = useStyles();
 
@@ -123,13 +126,14 @@ function VideoCall() {
           )}
           <Paper className={classes.callContainer} elevation={1}>
             <VideoPreview
+              callingMode={!!activeUser}
               localStream={localStream}
               localVideoNode={localVideoNode}
+              onEndCall={handleEndCall}
               remoteStream={remoteStream}
               remoteVideoNode={remoteVideoNode}
               setLocalVideoNode={setLocalVideoNode}
               setRemoteVideoNode={setRemoteVideoNode}
-              unsetActiveUser={unsetActiveUser}
             />
           </Paper>
         </Grid>

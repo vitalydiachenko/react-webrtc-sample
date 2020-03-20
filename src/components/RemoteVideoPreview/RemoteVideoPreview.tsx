@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import './RemoteVideoPreview.less';
 
 interface IRemoteVideoPreviewProps {
+  callingMode: boolean;
   remoteStream: MediaStream | null;
   remoteVideoNode: HTMLVideoElement | null;
   onEndCall: () => void;
@@ -20,7 +21,7 @@ const useStyles = makeStyles({
 });
 
 function RemoteVideoPreview(props: IRemoteVideoPreviewProps) {
-  const { onEndCall, remoteStream, remoteVideoNode, setVideoNode } = props;
+  const { callingMode, onEndCall, remoteStream, remoteVideoNode, setVideoNode } = props;
 
   useEffect(() => {
     if (remoteVideoNode) {
@@ -42,9 +43,11 @@ function RemoteVideoPreview(props: IRemoteVideoPreviewProps) {
             <video autoPlay={true} muted={true} ref={setVideoNode} />
           </div>
           <div className="RemoteVideoPreview__Content__Controls">
-            <Button variant="contained" color="secondary" onClick={handleEndCallClick}>
-              <CallEndIcon />
-            </Button>
+            {callingMode && (
+              <Button variant="contained" color="secondary" onClick={handleEndCallClick}>
+                <CallEndIcon />
+              </Button>
+            )}
           </div>
         </div>
       </Card>

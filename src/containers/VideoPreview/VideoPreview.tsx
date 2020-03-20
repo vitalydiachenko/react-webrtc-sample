@@ -4,34 +4,37 @@ import * as React from 'react';
 import './VideoPreview.less';
 
 interface IVideoPreviewProps {
+  callingMode: boolean;
   localStream: MediaStream | null;
   localVideoNode: HTMLVideoElement | null;
+  onEndCall: () => void;
   remoteStream: MediaStream | null;
   remoteVideoNode: HTMLVideoElement | null;
   setLocalVideoNode: (node: HTMLVideoElement) => void;
   setRemoteVideoNode: (node: HTMLVideoElement) => void;
-  unsetActiveUser: () => void;
 }
 
 function VideoPreview(props: IVideoPreviewProps) {
   const {
+    callingMode,
     localStream,
     localVideoNode,
+    onEndCall,
     remoteStream,
     remoteVideoNode,
     setLocalVideoNode,
     setRemoteVideoNode,
-    unsetActiveUser,
   } = props;
 
   const handleEndCall = () => {
-    unsetActiveUser();
+    onEndCall();
   };
 
   return (
     <div className="VideoPreview">
       <div className="VideoPreview__Remote">
         <RemoteVideoPreview
+          callingMode={callingMode}
           onEndCall={handleEndCall}
           remoteStream={remoteStream}
           remoteVideoNode={remoteVideoNode}

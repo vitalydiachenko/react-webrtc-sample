@@ -31,6 +31,7 @@ export interface ICallDispatcherState {
 
 export interface ICallDispatcherHook {
   callUser: (user: string) => Promise<void>;
+  endCall: () => void;
   setActiveUser: (user: string) => void;
   setLocalVideoNode: (node: HTMLVideoElement | null) => void;
   setRemoteVideoNode: (node: HTMLVideoElement | null) => void;
@@ -81,7 +82,9 @@ function setLocalVideoNode(
   };
 }
 
-function setRemoteStream(stream: MediaStream): ICallDispatcherAction<{ stream: MediaStream }> {
+function setRemoteStream(
+  stream: MediaStream | null,
+): ICallDispatcherAction<{ stream: MediaStream | null }> {
   return {
     type: CallDispatcherActions.SetRemoteStream,
     payload: { stream },
@@ -219,11 +222,16 @@ function useCallDispatcher(): ICallDispatcherHook {
     initialState,
   );
 
-  const localStreamRef = useRef(initialState.localStream);
+  const localStreamRef = useRef<MediaStream | null>(initialState.localStream);
+  const remoteStreamRef = useRef<MediaStream | null>(initialState.remoteStream);
 
   useEffect(() => {
     localStreamRef.current = state.localStream;
   }, [state.localStream]);
+
+  useEffect(() => {
+    remoteStreamRef.current = state.remoteStream;
+  }, [state.remoteStream]);
 
   const initialiseLocalStream = useCallback<() => Promise<void>>(async () => {
     try {
@@ -343,6 +351,28 @@ function useCallDispatcher(): ICallDispatcherHook {
     }
   }, []);
 
+  const closePeerConnection = () => {
+    peerConnection.close();
+
+    peerConnection = null;
+  };
+
+  const onEndCall = () => {
+    closePeerConnection();
+
+    remoteStreamRef.current.getTracks().forEach((track: MediaStreamTrack) => {
+      track.stop();
+    });
+
+    dispatch(setRemoteStream(null));
+
+    dispatch(setActiveUser(''));
+  };
+
+  const endCall = useCallback<() => void>(() => {
+    onEndCall();
+  }, []);
+
   useEffect(() => {
     initialiseLocalStream().catch(error => {
       throw error;
@@ -387,6 +417,7 @@ function useCallDispatcher(): ICallDispatcherHook {
 
   return {
     callUser,
+    endCall,
     setActiveUser: useCallback<(user: string) => void>((user: string) => {
       dispatch(setActiveUser(user));
     }, []),
