@@ -242,15 +242,11 @@ function useCallDispatcher(): ICallDispatcherHook {
     (socketId: string) => (event: RTCPeerConnectionIceEvent) => void
   >(
     (socketId: string) => ({ candidate }: RTCPeerConnectionIceEvent) => {
-      console.log(`Got ICE candidate for "#${socketId}"`, candidate);
-
       if (candidate) {
         socket.emit(SocketEvent.SendIceCandidate, {
           candidate,
           to: socketId,
         });
-
-        console.log(`Candidate sent to #"${socketId}"`);
       }
     },
     [],
@@ -371,8 +367,6 @@ function useCallDispatcher(): ICallDispatcherHook {
       async ({ socket: socketId, candidate }: { socket: string; candidate: RTCIceCandidate }) => {
         try {
           await onIceCandidateReceived({ candidate });
-
-          console.log(`ICE candidate received from ${socketId}`);
         } catch (error) {
           // tslint:disable-next-line:no-console
           console.error(error);
