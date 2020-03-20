@@ -230,8 +230,14 @@ function useCallDispatcher(): ICallDispatcherHook {
     initialState,
   );
 
+  const activeUserRef = useRef<string>(initialState.activeUser);
+
   const localStreamRef = useRef<MediaStream | null>(initialState.localStream);
   const remoteStreamRef = useRef<MediaStream | null>(initialState.remoteStream);
+
+  useEffect(() => {
+    activeUserRef.current = state.activeUser;
+  }, [state.activeUser]);
 
   useEffect(() => {
     localStreamRef.current = state.localStream;
@@ -369,6 +375,14 @@ function useCallDispatcher(): ICallDispatcherHook {
     onEndCall();
   }, []);
 
+  const onRemoveUserFromList = ({ user }: { user: string }) => {
+    if (user === activeUserRef.current) {
+      onEndCall();
+    }
+
+    dispatch(removeUser(user));
+  };
+
   useEffect(() => {
     initialiseLocalStream().catch(error => {
       throw error;
@@ -404,9 +418,7 @@ function useCallDispatcher(): ICallDispatcherHook {
       },
     );
 
-    socket.on(SocketEvent.RemoveUserFromList, ({ user }: { user: string }) => {
-      dispatch(removeUser(user));
-    });
+    socket.on(SocketEvent.RemoveUserFromList, onRemoveUserFromList);
 
     socket.on(SocketEvent.UpdateUsersList, ({ users }: { users: string[] }) => {
       dispatch(updateUsers(users));
