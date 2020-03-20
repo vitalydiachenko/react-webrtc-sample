@@ -6,6 +6,7 @@ enum CallDispatcherActions {
   AddUser = 'ADD_USER',
   RemoveUser = 'REMOVE_USER',
   SetActiveUser = 'SET_ACTIVE_USER',
+  SetCurrentId = 'SET_CURRENT_ID',
   SetLocalStream = 'SET_LOCAL_STREAM',
   SetLocalVideoNode = 'SET_LOCAL_VIDEO_NODE',
   SetRemoteStream = 'SET_REMOTE_STREAM',
@@ -20,6 +21,7 @@ interface ICallDispatcherAction<PayloadType = any> {
 
 export interface ICallDispatcherState {
   activeUser: string;
+  currentId: string;
   localStream: MediaStream | null;
   localVideoNode: HTMLVideoElement | null;
   remoteStream: MediaStream | null;
@@ -53,6 +55,13 @@ function setActiveUser(user: string): ICallDispatcherAction<{ user: string }> {
   return {
     type: CallDispatcherActions.SetActiveUser,
     payload: { user },
+  };
+}
+
+function setCurrentId(id: string): ICallDispatcherAction<{ id: string }> {
+  return {
+    type: CallDispatcherActions.SetCurrentId,
+    payload: { id },
   };
 }
 
@@ -127,6 +136,15 @@ function reducer(state: ICallDispatcherState, action: ICallDispatcherAction): IC
       };
     }
 
+    case CallDispatcherActions.SetCurrentId: {
+      const { id }: { id: string } = payload;
+
+      return {
+        ...state,
+        currentId: id,
+      };
+    }
+
     case CallDispatcherActions.SetLocalStream: {
       const { stream }: { stream: MediaStream | null } = payload;
 
@@ -180,14 +198,13 @@ function reducer(state: ICallDispatcherState, action: ICallDispatcherAction): IC
 
 const initialState: ICallDispatcherState = {
   activeUser: '',
+  currentId: '',
   localStream: null,
   localVideoNode: null,
   remoteStream: null,
   remoteVideoNode: null,
   users: [],
 };
-
-let isAlreadyCalling = false;
 
 let peerConnection: RTCPeerConnection | null = null;
 
@@ -221,6 +238,32 @@ function useCallDispatcher(): ICallDispatcherHook {
     }
   }, []);
 
+  const gotIceCandidate = useCallback<
+    (socketId: string) => (event: RTCPeerConnectionIceEvent) => void
+  >(
+    (socketId: string) => ({ candidate }: RTCPeerConnectionIceEvent) => {
+      console.log(`Got ICE candidate for "#${socketId}"`, candidate);
+
+      if (candidate) {
+        socket.emit(SocketEvent.SendIceCandidate, {
+          candidate,
+          to: socketId,
+        });
+
+        console.log(`Candidate sent to #"${socketId}"`);
+      }
+    },
+    [],
+  );
+
+  const onIceCandidateReceived = useCallback<
+    (data: { candidate: RTCIceCandidate }) => Promise<void>
+  >(async ({ candidate }) => {
+    if (peerConnection) {
+      await peerConnection.addIceCandidate(candidate);
+    }
+  }, []);
+
   const gotRemoteStream = useCallback<(event: RTCTrackEvent) => void>(({ streams: [stream] }) => {
     dispatch(setRemoteStream(stream));
   }, []);
@@ -234,11 +277,16 @@ function useCallDispatcher(): ICallDispatcherHook {
 
         peerConnection.ontrack = gotRemoteStream;
 
+        peerConnection.onicecandidate = gotIceCandidate(user);
+
         localStream.getTracks().forEach((track: MediaStreamTrack) => {
           peerConnection.addTrack(track, localStream);
         });
 
-        const offer: RTCSessionDescriptionInit = await peerConnection.createOffer();
+        const offer: RTCSessionDescriptionInit = await peerConnection.createOffer({
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: true,
+        });
 
         await peerConnection.setLocalDescription(new RTCSessionDescription(offer));
 
@@ -271,11 +319,13 @@ function useCallDispatcher(): ICallDispatcherHook {
 
       peerConnection.ontrack = gotRemoteStream;
 
+      peerConnection.onicecandidate = gotIceCandidate(socketId);
+
       localStream.getTracks().forEach((track: MediaStreamTrack) => {
         peerConnection.addTrack(track, localStream);
       });
 
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+      await peerConnection.setRemoteDescription(offer);
 
       const answer: RTCSessionDescriptionInit = await peerConnection.createAnswer();
 
@@ -291,11 +341,7 @@ function useCallDispatcher(): ICallDispatcherHook {
     (data: { socket: string; answer: RTCSessionDescriptionInit }) => Promise<void>
   >(async ({ answer }) => {
     if (peerConnection) {
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-
-      if (!isAlreadyCalling) {
-        isAlreadyCalling = true;
-      }
+      await peerConnection.setRemoteDescription(answer);
     } else {
       throw new Error('Peer connection is not available');
     }
@@ -306,6 +352,12 @@ function useCallDispatcher(): ICallDispatcherHook {
       throw error;
     });
 
+    socket.on('connect', () => {
+      dispatch(setCurrentId(socket.id));
+    });
+
+    dispatch(setCurrentId(socket.id));
+
     socket.on(SocketEvent.AddUserToList, ({ user }: { user: string }) => {
       dispatch(addUser(user));
     });
@@ -313,6 +365,22 @@ function useCallDispatcher(): ICallDispatcherHook {
     socket.on(SocketEvent.AnswerMade, onAnswerMade);
 
     socket.on(SocketEvent.CallMade, onCallMade);
+
+    socket.on(
+      SocketEvent.IceReceived,
+      async ({ socket: socketId, candidate }: { socket: string; candidate: RTCIceCandidate }) => {
+        try {
+          await onIceCandidateReceived({ candidate });
+
+          console.log(`ICE candidate received from ${socketId}`);
+        } catch (error) {
+          // tslint:disable-next-line:no-console
+          console.error(error);
+
+          throw new Error(`Cannot process ICE candidate from "#${socketId}"`);
+        }
+      },
+    );
 
     socket.on(SocketEvent.RemoveUserFromList, ({ user }: { user: string }) => {
       dispatch(removeUser(user));
