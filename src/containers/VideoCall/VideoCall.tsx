@@ -3,8 +3,10 @@ import Divider from '@material-ui/core/Divider';
 import Drawer from '@material-ui/core/Drawer';
 import Grid from '@material-ui/core/Grid';
 import Paper from '@material-ui/core/Paper';
+import Snackbar from '@material-ui/core/Snackbar';
 import { makeStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
+import { default as CloseIcon } from '@material-ui/icons/Close';
 import UsersList from 'components/UsersList';
 import VideoPreview from 'containers/VideoPreview';
 import { useCallDispatcher } from 'hooks';
@@ -23,6 +25,11 @@ const useStyles = makeStyles(theme => ({
     marginTop: '16px',
     padding: '8px',
   },
+  drawerHeader: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    padding: '16px',
+  },
   main: {
     margin: '32px 0',
   },
@@ -38,6 +45,8 @@ const useStyles = makeStyles(theme => ({
 
 function VideoCall() {
   const [isUsersListOpen, toggleUsersListVisibility] = useState<boolean>(false);
+
+  const [showExistingCall, setExistingCallStatus] = useState<boolean>(false);
 
   const {
     callUser,
@@ -65,21 +74,29 @@ function VideoCall() {
 
   const handleSelectUser = useCallback<(user: string) => void>(
     (user: string) => {
-      callUser(user).catch(error => {
-        // tslint:disable-next-line:no-console
-        console.error(error);
+      if (!activeUser) {
+        callUser(user).catch(error => {
+          // tslint:disable-next-line:no-console
+          console.error(error);
 
-        throw new Error(`Cannot call user #${user}!`);
-      });
+          throw new Error(`Cannot call user #${user}!`);
+        });
 
-      handleUsersListClose();
+        handleUsersListClose();
+      } else {
+        setExistingCallStatus(true);
+      }
     },
-    [callUser, handleUsersListClose],
+    [activeUser, callUser, handleUsersListClose],
   );
 
   const handleEndCall = useCallback(() => {
     endCall(activeUser);
   }, [endCall, activeUser]);
+
+  const handleExistingCallNotificationClose = useCallback(() => {
+    setExistingCallStatus(false);
+  }, [setExistingCallStatus]);
 
   const classes = useStyles();
 
@@ -139,8 +156,23 @@ function VideoCall() {
         </Grid>
       </Grid>
       <Drawer open={isUsersListOpen} anchor="left" onClose={handleUsersListClose}>
+        <div className={classes.drawerHeader}>
+          <Button variant="contained" color="primary" onClick={handleUsersListClose}>
+            <CloseIcon />
+          </Button>
+        </div>
         <UsersList onSelect={handleSelectUser} users={users} />
       </Drawer>
+      <Snackbar
+        open={showExistingCall}
+        autoHideDuration={3000}
+        message="You have existing call! End it to make another!"
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left',
+        }}
+        onClose={handleExistingCallNotificationClose}
+      />
     </div>
   );
 }
