@@ -74,12 +74,12 @@ function VideoCall() {
 
       handleUsersListClose();
     },
-    [callUser],
+    [callUser, handleUsersListClose],
   );
 
   const handleEndCall = useCallback(() => {
-    endCall();
-  }, [endCall]);
+    endCall(activeUser);
+  }, [endCall, activeUser]);
 
   const classes = useStyles();
 

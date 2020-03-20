@@ -31,7 +31,7 @@ export interface ICallDispatcherState {
 
 export interface ICallDispatcherHook {
   callUser: (user: string) => Promise<void>;
-  endCall: () => void;
+  endCall: (user: string) => void;
   setActiveUser: (user: string) => void;
   setLocalVideoNode: (node: HTMLVideoElement | null) => void;
   setRemoteVideoNode: (node: HTMLVideoElement | null) => void;
@@ -369,7 +369,9 @@ function useCallDispatcher(): ICallDispatcherHook {
     dispatch(setActiveUser(''));
   };
 
-  const endCall = useCallback<() => void>(() => {
+  const endCall = useCallback<(user: string) => void>((user: string) => {
+    socket.emit(SocketEvent.EndCall, { to: user });
+
     onEndCall();
   }, []);
 
@@ -391,6 +393,8 @@ function useCallDispatcher(): ICallDispatcherHook {
     socket.on(SocketEvent.AnswerMade, onAnswerMade);
 
     socket.on(SocketEvent.CallMade, onCallMade);
+
+    socket.on(SocketEvent.CallEnded, onEndCall);
 
     socket.on(
       SocketEvent.IceReceived,
